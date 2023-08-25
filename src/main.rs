@@ -49,14 +49,58 @@ fn create_app_config(cfg: &mut web::ServiceConfig) {
 }
 
 #[cfg(test)]
-mod tests {
+mod json_tests {
+    use super::*;
+
+    #[test]
+    fn test_pessoa_desserialize_ok() {
+        let pessoa = serde_json::from_str::<Pessoa>(
+            r#"{
+                "nome": "ruan", 
+                "apelido": "rugs", 
+                "nascimento":"1999-06-01", 
+                "stack": []
+            }"#).unwrap();
+        assert_eq!("ruan".to_owned(), pessoa.nome);
+        assert_eq!("rugs".to_owned(), pessoa.apelido);
+        assert_eq!(NaiveDate::from_ymd_opt(1999, 6, 1).unwrap(), pessoa.nascimento);
+        assert!(pessoa.stack.is_some_and(|stack| stack.is_empty()));
+
+        let pessoa = serde_json::from_str::<Pessoa>(
+            r#"{
+                "nome": "ruan", 
+                "apelido": "rugs", 
+                "nascimento":"1999-06-01" 
+            }"#).unwrap();
+        assert_eq!("ruan".to_owned(), pessoa.nome);
+        assert_eq!("rugs".to_owned(), pessoa.apelido);
+        assert_eq!(NaiveDate::from_ymd_opt(1999, 6, 1).unwrap(), pessoa.nascimento);
+        assert!(pessoa.stack.is_none());
+
+        let pessoa = serde_json::from_str::<Pessoa>(
+            r#"{
+                "nome": "ruan", 
+                "apelido": "rugs", 
+                "nascimento":"1999-06-01",
+                "stack": ["Rust", "Java"]
+            }"#).unwrap();
+        assert_eq!("ruan".to_owned(), pessoa.nome);
+        assert_eq!("rugs".to_owned(), pessoa.apelido);
+        assert_eq!(NaiveDate::from_ymd_opt(1999, 6, 1).unwrap(), pessoa.nascimento);
+        assert!(pessoa.stack.is_some_and(|stack| 
+            stack.len() == 2 
+            && stack.contains(&"Rust".to_string()) 
+            && stack.contains(&"Java".to_string())
+        ));
+    }
+}
+
+#[cfg(test)]
+mod actix_tests {
     use super::*;
     use actix_web::{
         dev::Service,
-        http::{
-            header::{self, ContentType},
-            StatusCode,
-        },
+        http::{header::ContentType, StatusCode},
         test, App,
     };
 
